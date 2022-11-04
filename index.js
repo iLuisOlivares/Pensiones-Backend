@@ -110,6 +110,25 @@ app.get('/favoritos/:id', (req, res) => {
 
         });
 });
+app.get('/propiedades/:id', (req, res) => {
+
+    const usuarioId = req.params.id;
+    db.query("SELECT  * FROM Inmueble where Usuario_id = ?",
+        [usuarioId],
+        (err, result) => {
+            if (err) {
+                res.send({ err: err })
+            }
+            if (result.length > 0) {
+                res.send(result);
+            } else {
+                res.send({
+                    message: "No tiene Pensiones"
+                });
+            }
+
+        });
+});
 
 
 app.post('/agregar/pension', (req, res) => {
@@ -120,9 +139,10 @@ app.post('/agregar/pension', (req, res) => {
     const descripcion = req.body.descripcion;
     const habitaciones = req.body.habitaciones;
     const direccion = req.body.direccion;
+    const usuarioId = req.body.usuarioId;
 
-    db.query("INSERT INTO Inmueble ( titulo, barrio, imagen, descripcion, habitaciones, direccion) VALUES (?,?,?,?,?,?)",
-        [titulo, barrio, imagen, descripcion, habitaciones, direccion],
+    db.query("INSERT INTO Inmueble ( titulo, barrio, imagen, descripcion, habitaciones, direccion, usuario_id) VALUES (?,?,?,?,?,?,?)",
+        [titulo, barrio, imagen, descripcion, habitaciones, direccion, usuarioId],
         (err, result) => {
             if (err) {
                 res.send({ err: err })
