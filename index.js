@@ -1,11 +1,16 @@
 const express = require("express");
 const mysql = require("mysql");
 const cors = require("cors");
+const bcrypt = require('bcrypt');
+const { response } = require("express");
+const saltRounds = 10;
 
 const app = express();
 
+
 app.use(express.json());
 app.use(cors());
+
 
 const db = mysql.createConnection({
     user: "root",
@@ -23,13 +28,65 @@ app.post('/register', (req, res) => {
     const correo = req.body.correo;
     const contra = req.body.contra;
 
-    db.query("INSERT INTO Usuarios ( Nombre, Celular, Correo, Contra) VALUES (?,?,?,?)",
-        [nombre, celular, correo, contra],
-        (err, result) => {
+
+    if (nombre == '' || celular == '' || correo == '' || contra == '') {
+        res.send({ message: 'Por favor, completar todos los campos!!' });
+    } else {
+
+        bcrypt.hash(contra, saltRounds, (err, hash) => {
+
             if (err) {
-                res.send({ err: err })
+                console.log(err);
             }
-        });
+
+            db.query("INSERT INTO Usuarios ( Nombre, Celular, Correo, Contra) VALUES (?,?,?,?)",
+                [nombre, celular, correo, hash],
+                (err, result) => {
+                    if (err) {
+                        if (err.code == "ER_DUP_ENTRY") {
+                            res.send({ err: err, message: "Correo electronico no disponible" })
+                        }
+                        else {
+                            res.send({ err: err, message: err.message })
+                        }
+                    }
+
+                    res.send(result);
+
+                });
+        })
+
+    }
+
+
+})
+
+app.put('/actualizar/perfil', (req, res) => {
+
+    const nombre = req.body.nombre;
+    const celular = req.body.celular;
+    const correo = req.body.correo;
+    const id = req.body.usuarioId;
+    const foto = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Circle-icons-profile.svg/2048px-Circle-icons-profile.svg.png"
+
+    if (nombre == '' || celular == '' || correo == '' || foto == '') {
+        res.send({ message: 'Por favor, completar todos los campos!!' });
+    } else {
+        db.query("UPDATE Usuarios SET Nombre= ?, Celular= ?, Correo= ?, foto=? WHERE  id = ? ",
+            [nombre, celular, correo, foto, id],
+            (err, result) => {
+                if (err) {
+                    res.send({ err: err })
+                } else {
+                    res.send({
+                        message: "Perfil actualizado",
+                        icon: 'success'
+                    });
+                }
+
+            });
+    }
+
 })
 
 app.post('/login', (req, res) => {
@@ -37,21 +94,35 @@ app.post('/login', (req, res) => {
     const correo = req.body.correo;
     const contra = req.body.contra;
 
-    db.query("SELECT * FROM Usuarios WHERE Correo = ? AND Contra = ?",
-        [correo, contra],
-        (err, result) => {
-            if (err) {
-                res.send({ err: err })
-            }
-            if (result.length > 0) {
-                res.send(result);
-            } else {
-                res.send({
-                    message: "User Not Found"
-                });
-            }
-
+    if (correo == '' || contra == '') {
+        res.send({
+            message: "Por favor, completar todos los campos!!"
         });
+    } else {
+        db.query("SELECT * FROM Usuarios WHERE Correo = ?",
+            [correo],
+            (err, result) => {
+                if (err) {
+                    res.send({ err: err })
+                }
+                else if (result.length > 0) {
+                    bcrypt.compare(contra, result[0].Contra, (err, response) => {
+                        if (response) {
+                            res.send(result)
+                        } else {
+                            res.send({
+                                message: "Usuario o Contraseña incorrectos!"
+                            });
+                        }
+                    })
+                } else {
+                    res.send({
+                        message: "Usuario no existe!"
+                    });
+                }
+
+            });
+    }
 })
 
 app.get('/propiedades', (req, res) => {
@@ -100,16 +171,13 @@ app.get('/favoritos/:id', (req, res) => {
             if (err) {
                 res.send({ err: err })
             }
-            if (result.length > 0) {
-                res.send(result);
-            } else {
-                res.send({
-                    message: "No tiene favoritos"
-                });
-            }
+
+            res.send(result);
+            console.log(result);
 
         });
 });
+
 app.get('/propiedades/:id', (req, res) => {
 
     const usuarioId = req.params.id;
@@ -119,36 +187,61 @@ app.get('/propiedades/:id', (req, res) => {
             if (err) {
                 res.send({ err: err })
             }
-            if (result.length > 0) {
-                res.send(result);
-            } else {
-                res.send({
-                    message: "No tiene Pensiones"
-                });
-            }
+            res.send(result);
+            console.log(result);
 
         });
 });
 
 
-app.post('/agregar/pension', (req, res) => {
+app.post('/agregar/propiedad', (req, res) => {
 
     const titulo = req.body.titulo;
     const barrio = req.body.barrio;
-    const imagen = req.body.imagen;
     const descripcion = req.body.descripcion;
-    const habitaciones = req.body.habitaciones;
+    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
     const direccion = req.body.direccion;
+    const precio = req.body.precio;
     const usuarioId = req.body.usuarioId;
 
-    db.query("INSERT INTO Inmueble ( titulo, barrio, imagen, descripcion, habitaciones, direccion, usuario_id) VALUES (?,?,?,?,?,?,?)",
-        [titulo, barrio, imagen, descripcion, habitaciones, direccion, usuarioId],
+    if (titulo == '' || barrio == '' || descripcion == '' || imagen == '' || direccion == '' || precio == '' || usuarioId == '') {
+        res.send({
+            message: "Por favor, completar todos los campos!!",
+            icon: 'error'
+        });
+    } else {
+        db.query("INSERT INTO Inmueble ( titulo, precio, barrio, descripcion, direccion, usuario_id, imagen) VALUES (?,?,?,?,?,?,?)",
+            [titulo, precio, barrio, descripcion, direccion, usuarioId, imagen],
+            (err, result) => {
+                if (err) {
+                    res.send({ err: err })
+                }
+                res.send({
+                    message: "Pension agregada",
+                    icon: 'success'
+                });
+            });
+    }
+
+
+
+});
+
+app.post('/eliminar/propiedad', (req, res) => {
+
+    const pensionId = req.body.pensionId;
+    const usuarioId = req.body.usuarioId;
+
+    console.log(pensionId)
+    db.query("DELETE FROM Inmueble WHERE Usuario_id = ? and id = ?",
+        [usuarioId, pensionId],
         (err, result) => {
             if (err) {
                 res.send({ err: err })
+                console.log(err)
             }
             res.send({
-                message: "Agregada nueva pension"
+                message: "Pension Eliminada"
             });
         });
 
@@ -166,12 +259,35 @@ app.get('/perfil/:id', (req, res) => {
             }
             if (result.length > 0) {
                 res.send({
-                    user: result
+                    user: result[0]
                 }
                 );
             } else {
                 res.send({
                     message: "Usuario no encontrado"
+                });
+            }
+        });
+
+});
+app.get('/propiedad/:id', (req, res) => {
+
+    const inmuebleId = req.params.id;
+
+    db.query("SELECT * FROM Inmueble where id = ?",
+        [inmuebleId],
+        (err, result) => {
+            if (err) {
+                res.send({ err: err })
+            }
+            if (result.length > 0) {
+                res.send({
+                    Property: result[0]
+                }
+                );
+            } else {
+                res.send({
+                    message: "Inmueble no encontrado"
                 });
             }
         });
@@ -187,7 +303,6 @@ app.post('/agregar/favorito', (req, res) => {
         [usuarioId, pensionId],
         (err, result) => {
             if (result.length > 0) {
-
                 db.query("DELETE FROM Favoritos WHERE Usuario_id = ? and Inmueble_id = ?",
                     [usuarioId, pensionId],
                     (err, result) => {
