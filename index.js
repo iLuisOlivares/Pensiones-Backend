@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+import { PORT } from "./config.js";
 
 const saltRounds = 10;
 
@@ -470,6 +471,6 @@ app.post('/agregar/favorito', (req, res) => {
 
 
 
-app.listen(3001, () => {
+app.listen(PORT, () => {
     console.log("running server");
 });
