@@ -5,7 +5,10 @@ const bcrypt = require('bcrypt');
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-import { PORT } from "./config.js";
+
+
+const PORT = process.env.PORT || 3001;
+
 const saltRounds = 10;
 
 const app = express();
