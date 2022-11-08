@@ -2,21 +2,53 @@ const express = require("express");
 const mysql = require("mysql");
 const cors = require("cors");
 const bcrypt = require('bcrypt');
-const { response } = require("express");
+const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+const session = require("express-session");
+
 const saltRounds = 10;
 
 const app = express();
 
 
+
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+}
+
+));
+
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(
+    session({
+        key: "userId",
+        secret: "PensionesSecretAPP",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            expires: 60 * 60 * 24
+
+        }
+    })
+)
 
 
 const db = mysql.createConnection({
     user: "root",
-    host: "localhost",
-    password: "Meraki",
-    database: "pensiones"
+    host: "containers-us-west-118.railway.app",
+    port: 6605,
+    password: "rlGPy9ODdRDvV6xm9ULX",
+    database: "railway",
+});
+
+db.connect(function (err) {
+    if (err) throw err;
+    console.log("Connected!");
 });
 
 
@@ -89,6 +121,15 @@ app.put('/actualizar/perfil', (req, res) => {
 
 })
 
+app.get('/login', (req, res) => {
+    if (req.session.user) {
+        res.send({ loggedIn: true, user: req.session.user })
+    } else {
+        res.send({ loggedIn: false });
+    }
+
+});
+
 app.post('/login', (req, res) => {
 
     const correo = req.body.correo;
@@ -108,6 +149,8 @@ app.post('/login', (req, res) => {
                 else if (result.length > 0) {
                     bcrypt.compare(contra, result[0].Contra, (err, response) => {
                         if (response) {
+                            req.session.user = result;
+                            console.log(req.session.user);
                             res.send(result)
                         } else {
                             res.send({
@@ -128,6 +171,26 @@ app.post('/login', (req, res) => {
 app.get('/propiedades', (req, res) => {
 
     db.query("select Inmueble.*, Usuarios.Nombre, Usuarios.Celular from Inmueble inner join Usuarios on Inmueble.Usuario_id = Usuarios.Id",
+        (err, result) => {
+            if (err) {
+                res.send({ err: err })
+            }
+            if (result.length > 0) {
+                res.send(result);
+            } else {
+                res.send({
+                    message: "Not Found"
+                });
+            }
+
+        });
+});
+app.get('/propiedad/:id', (req, res) => {
+
+
+    const usuarioId = req.params.id;
+
+    db.query("select Inmueble.*, Usuarios.Nombre, Usuarios.Celular from Inmueble inner join Usuarios on Inmueble.Usuario_id = Usuarios.Id where Inmueble.Id = ?", [usuarioId],
         (err, result) => {
             if (err) {
                 res.send({ err: err })
@@ -193,6 +256,74 @@ app.get('/propiedades/:id', (req, res) => {
         });
 });
 
+
+app.post('/agregar/propiedad', (req, res) => {
+
+    const titulo = req.body.titulo;
+    const barrio = req.body.barrio;
+    const descripcion = req.body.descripcion;
+    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
+    const direccion = req.body.direccion;
+    const precio = req.body.precio;
+    const usuarioId = req.body.usuarioId;
+
+    if (titulo == '' || barrio == '' || descripcion == '' || imagen == '' || direccion == '' || precio == '' || usuarioId == '') {
+        res.send({
+            message: "Por favor, completar todos los campos!!",
+            icon: 'error'
+        });
+    } else {
+        db.query("INSERT INTO Inmueble ( titulo, precio, barrio, descripcion, direccion, usuario_id, imagen) VALUES (?,?,?,?,?,?,?)",
+            [titulo, precio, barrio, descripcion, direccion, usuarioId, imagen],
+            (err, result) => {
+                if (err) {
+                    res.send({ err: err })
+                }
+                res.send({
+                    message: "Pension agregada",
+                    icon: 'success'
+                });
+            });
+    }
+
+
+
+});
+
+app.put('/actualizar/propiedad', (req, res) => {
+
+    const titulo = req.body.titulo;
+    const barrio = req.body.barrio;
+    const descripcion = req.body.descripcion;
+    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
+    const direccion = req.body.direccion;
+    const precio = req.body.precio;
+    const id = req.body.id;
+
+    console.log(id);
+
+    if (titulo == '' || barrio == '' || descripcion == '' || imagen == '' || direccion == '' || precio == '' || id == '') {
+        res.send({
+            message: "Por favor, completar todos los campos!!",
+            icon: 'error'
+        });
+    } else {
+        db.query("UPDATE Inmueble SET titulo = ?, precio = ?, barrio = ?, descripcion = ?, direccion = ? , imagen = ? where id = ?",
+            [titulo, precio, barrio, descripcion, direccion, imagen, id],
+            (err, result) => {
+                if (err) {
+                    res.send({ err: err })
+                }
+                res.send({
+                    message: "Pension Actualizada",
+                    icon: 'success'
+                });
+            });
+    }
+
+
+
+});
 
 app.post('/agregar/propiedad', (req, res) => {
 
