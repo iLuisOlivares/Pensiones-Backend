@@ -6,7 +6,6 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 import { PORT } from "./config.js";
-
 const saltRounds = 10;
 
 const app = express();
@@ -472,5 +471,5 @@ app.post('/agregar/favorito', (req, res) => {
 
 
 app.listen(PORT, () => {
-    console.log("running server");
+    console.log("running server on port", PORT);
 });
