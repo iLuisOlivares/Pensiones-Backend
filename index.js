@@ -170,6 +170,8 @@ app.post('/login', (req, res) => {
 
 app.get('/propiedades', (req, res) => {
 
+    console.log("entrando a prop");
+
     db.query("select Inmueble.*, Usuarios.Nombre, Usuarios.Celular from Inmueble inner join Usuarios on Inmueble.Usuario_id = Usuarios.Id",
         (err, result) => {
             if (err) {
