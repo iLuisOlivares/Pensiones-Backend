@@ -34,7 +34,7 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: {
-            expires: 60 * 60 * 24
+            expires: 60 * 60 * 24 * 60
 
         }
     })
@@ -62,7 +62,7 @@ app.post('/register', (req, res) => {
     const celular = req.body.celular;
     const correo = req.body.correo;
     const contra = req.body.contra;
-
+    const foto = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Circle-icons-profile.svg/2048px-Circle-icons-profile.svg.png";
 
     if (nombre == '' || celular == '' || correo == '' || contra == '') {
         res.send({ message: 'Por favor, completar todos los campos!!' });
@@ -74,8 +74,8 @@ app.post('/register', (req, res) => {
                 console.log(err);
             }
 
-            db.query("INSERT INTO Usuarios ( Nombre, Celular, Correo, Contra) VALUES (?,?,?,?)",
-                [nombre, celular, correo, hash],
+            db.query("INSERT INTO Usuarios ( Nombre, Celular, Correo, Contra, Foto) VALUES (?,?,?,?,?)",
+                [nombre, celular, correo, hash, foto],
                 (err, result) => {
                     if (err) {
                         if (err.code == "ER_DUP_ENTRY") {
@@ -102,7 +102,7 @@ app.put('/actualizar/perfil', (req, res) => {
     const celular = req.body.celular;
     const correo = req.body.correo;
     const id = req.body.usuarioId;
-    const foto = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Circle-icons-profile.svg/2048px-Circle-icons-profile.svg.png"
+    const foto = req.body.foto
 
     if (nombre == '' || celular == '' || correo == '' || foto == '') {
         res.send({ message: 'Por favor, completar todos los campos!!' });
@@ -261,13 +261,12 @@ app.get('/propiedades/:id', (req, res) => {
         });
 });
 
-
 app.post('/agregar/propiedad', (req, res) => {
 
     const titulo = req.body.titulo;
     const barrio = req.body.barrio;
     const descripcion = req.body.descripcion;
-    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
+    const imagen = req.body.imagen;
     const direccion = req.body.direccion;
     const precio = req.body.precio;
     const usuarioId = req.body.usuarioId;
@@ -295,12 +294,13 @@ app.post('/agregar/propiedad', (req, res) => {
 
 });
 
+
 app.put('/actualizar/propiedad', (req, res) => {
 
     const titulo = req.body.titulo;
     const barrio = req.body.barrio;
     const descripcion = req.body.descripcion;
-    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
+    const imagen = req.body.imagen;
     const direccion = req.body.direccion;
     const precio = req.body.precio;
     const id = req.body.id;
@@ -330,38 +330,6 @@ app.put('/actualizar/propiedad', (req, res) => {
 
 });
 
-app.post('/agregar/propiedad', (req, res) => {
-
-    const titulo = req.body.titulo;
-    const barrio = req.body.barrio;
-    const descripcion = req.body.descripcion;
-    const imagen = "https://cf.bstatic.com/xdata/images/hotel/max1024x768/180051990.jpg?k=97b4df49c92a434c13a6814aa28d8693547d1e16d51f6d3e8fbb337959ac7b17&o=&hp=1";
-    const direccion = req.body.direccion;
-    const precio = req.body.precio;
-    const usuarioId = req.body.usuarioId;
-
-    if (titulo == '' || barrio == '' || descripcion == '' || imagen == '' || direccion == '' || precio == '' || usuarioId == '') {
-        res.send({
-            message: "Por favor, completar todos los campos!!",
-            icon: 'error'
-        });
-    } else {
-        db.query("INSERT INTO Inmueble ( titulo, precio, barrio, descripcion, direccion, usuario_id, imagen) VALUES (?,?,?,?,?,?,?)",
-            [titulo, precio, barrio, descripcion, direccion, usuarioId, imagen],
-            (err, result) => {
-                if (err) {
-                    res.send({ err: err })
-                }
-                res.send({
-                    message: "Pension agregada",
-                    icon: 'success'
-                });
-            });
-    }
-
-
-
-});
 
 app.post('/eliminar/propiedad', (req, res) => {
 
@@ -435,10 +403,15 @@ app.post('/agregar/favorito', (req, res) => {
     const usuarioId = req.body.usuarioId;
     const pensionId = req.body.pensionId;
 
-    db.query("SELECT * FROM favoritos WHERE Usuario_id = ? and Inmueble_id = ?",
+    console.log(usuarioId, pensionId);
+    db.query("SELECT * FROM Favoritos WHERE usuario_Id = ? and Inmueble_id = ?",
         [usuarioId, pensionId],
         (err, result) => {
-            if (result.length > 0) {
+            console.log(result);
+            if (err) {
+                res.send({ err: err })
+            }
+            else if (result.length > 0) {
                 db.query("DELETE FROM Favoritos WHERE Usuario_id = ? and Inmueble_id = ?",
                     [usuarioId, pensionId],
                     (err, result) => {
