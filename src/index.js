@@ -133,6 +133,16 @@ app.get('/login', (req, res) => {
 
 });
 
+//?Completado: Cerrar Sesion (logout)
+app.get('/logout', (req, res,) => {
+    req.session.destroy((err) => {
+        res.clearCookie("userId").send('cleared cookie');
+    });
+
+});
+
+
+
 app.post('/login', (req, res) => {
 
     const correo = req.body.correo;
@@ -153,7 +163,6 @@ app.post('/login', (req, res) => {
                     bcrypt.compare(contra, result[0].Contra, (err, response) => {
                         if (response) {
                             req.session.user = result;
-                            console.log(req.session.user);
                             res.send(result)
                         } else {
                             res.send({
