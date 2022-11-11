@@ -136,7 +136,7 @@ app.get('/login', (req, res) => {
 //?Completado: Cerrar Sesion (logout)
 app.get('/logout', (req, res,) => {
     req.session.destroy((err) => {
-        res.clearCookie("userId").send('cleared cookie');
+        res.clearCookie("userId").send({ message: "Sesión eliminada" });
     });
 
 });
