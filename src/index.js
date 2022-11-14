@@ -54,6 +54,13 @@ db.connect(function (err) {
     console.log("Connected!");
 });
 
+db.query("ALTER USER 'root' IDENTIFIED WITH mysql_native_password BY 'rlGPy9ODdRDvV6xm9ULX';", (err, result) => {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log(result);
+    }
+})
 
 //CLient
 app.post('/register', (req, res) => {
@@ -228,8 +235,7 @@ app.get('/notificaciones', (req, res) => {
             if (err) {
                 res.send({ err: err })
             }
-            console.log(result);
-            if (result.length > 0) {
+            else if (result.length > 0) {
                 res.send(result);
             } else {
                 res.send({
