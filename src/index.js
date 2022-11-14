@@ -228,6 +228,7 @@ app.get('/notificaciones', (req, res) => {
             if (err) {
                 res.send({ err: err })
             }
+            console.log(result);
             if (result.length > 0) {
                 res.send(result);
             } else {
